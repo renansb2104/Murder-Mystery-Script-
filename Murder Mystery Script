@@ -35,7 +35,7 @@ gui.IgnoreGuiInset = true
 gui.Parent = LP:WaitForChild("PlayerGui")
 _G.MaxGui = gui
 
--- Menu Menor (240x380)
+-- Menu Menor
 local main = Instance.new("Frame")
 main.Size = UDim2.new(0, 240, 0, 380)
 main.Position = UDim2.new(0.5, -120, 0.5, -190)
@@ -69,10 +69,10 @@ title.TextSize = 12
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = topBar
 
--- Botões Invertidos: Min no lado esquerdo, Fechar no lado direito (X no final)
+-- Botões Invertidos (Min esquerda, Fechar direita)
 local minBtn = Instance.new("TextButton")
 minBtn.Size = UDim2.new(0, 24, 0, 24)
-minBtn.Position = UDim2.new(1, -54, 0.5, -12) -- Lado esquerdo dos dois
+minBtn.Position = UDim2.new(1, -54, 0.5, -12)
 minBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 44)
 minBtn.Text = "—"
 minBtn.TextColor3 = Color3.fromRGB(200, 200, 215)
@@ -84,7 +84,7 @@ Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
 
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 24, 0, 24)
-closeBtn.Position = UDim2.new(1, -28, 0.5, -12) -- Lado direito dos dois
+closeBtn.Position = UDim2.new(1, -28, 0.5, -12)
 closeBtn.BackgroundColor3 = Color3.fromRGB(40, 24, 28)
 closeBtn.Text = "✕"
 closeBtn.TextColor3 = Color3.fromRGB(255, 120, 130)
@@ -246,7 +246,7 @@ credits.TextSize = 11
 credits.TextXAlignment = Enum.TextXAlignment.Center
 credits.Parent = body
 
--- ================== BOLINHA (Arrastável com Mouse/Touch) ==================
+-- ================== BOLINHA ==================
 local bubble = Instance.new("Frame")
 bubble.Size = UDim2.new(0, 45, 0, 45)
 bubble.Position = UDim2.new(0.5, -22, 0.5, -22)
@@ -265,7 +265,6 @@ local bImg = Instance.new("ImageLabel")
 bImg.Size = UDim2.new(1, 0, 1, 0)
 bImg.BackgroundTransparency = 1
 bImg.ScaleType = Enum.ScaleType.Crop
--- ID Público de um Decal gótico/caveira (The Binding of Isaac / Hollow Knight style)
 bImg.Image = "rbxassetid://10228714605"
 bImg.Parent = bubble
 
@@ -275,7 +274,6 @@ bBtn.BackgroundTransparency = 1
 bBtn.Text = ""
 bBtn.Parent = bubble
 
--- Drag da bolinha customizado (funciona em qualquer celular)
 local bDragging, bStart, bPos
 bubble.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
@@ -347,7 +345,6 @@ local function getAimPart(p)
     return p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Head")
 end
 
--- Hook Simples
 local oldNamecall
 oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local method = getnamecallmethod()
@@ -366,7 +363,6 @@ oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     return oldNamecall(self, ...)
 end)
 
--- ================== INFINITE JUMP ==================
 UIS.JumpRequest:Connect(function()
     if Config.InfJump and LP.Character then
         local humanoid = LP.Character:FindFirstChildOfClass("Humanoid")
@@ -376,7 +372,6 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
--- ================== TP RÁPIDO (NOVO MÉTODO) ==================
 local isTPing = false
 btnTP.MouseButton1Click:Connect(function()
     if isTPing then return end
@@ -384,7 +379,6 @@ btnTP.MouseButton1Click:Connect(function()
     local myChar = LP.Character
     if not myChar then isTPing = false; return end
     
-    -- Procura a arma mais perto
     local myPos = myChar:FindFirstChild("HumanoidRootPart") and myChar.HumanoidRootPart.Position or Vector3.zero
     local closestTool = nil
     local minDist = 200
@@ -407,7 +401,6 @@ btnTP.MouseButton1Click:Connect(function()
     end
     
     if closestTool then
-        -- Pega sem se mover (invisível para os outros)
         if closestTool:IsA("Tool") then
             closestTool.Parent = myChar
         elseif closestTool:FindFirstChildOfClass("Tool") then
@@ -418,7 +411,6 @@ btnTP.MouseButton1Click:Connect(function()
     isTPing = false
 end)
 
--- ================== ESP ==================
 task.spawn(function()
     while gui.Parent do
         task.wait(0.1)
@@ -512,4 +504,14 @@ task.spawn(function()
                             end
                         end
                     end
-                e
+                end
+            end
+            for obj, bb in pairs(weaponEsp) do
+                if not obj or not obj.Parent or not obj:IsDescendantOf(workspace) then
+                    if bb then bb:Destroy() end
+                    weaponEsp[obj] = nil
+                end
+            end
+        end
+    end
+end)
