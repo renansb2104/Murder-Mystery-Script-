@@ -1,0 +1,515 @@
+-- Murder Mystery Script | Create By Max
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local LP = Players.LocalPlayer
+
+if _G.MaxSilentAimLoaded then pcall(function() _G.MaxGui:Destroy() end) end
+_G.MaxSilentAimLoaded = true
+
+local Config = {
+    Aim = true,
+    EspRole = true,
+    EspGun = true,
+    InfJump = false,
+    Speed = false,
+    SpeedVal = 50,
+    Dist = 150,
+}
+
+local roleHighlights, roleBillboards, weaponEsp = {}, {}, {}
+
+local colorIndex = 0
+local function getRGBColor()
+    colorIndex = colorIndex + 0.01
+    return Color3.fromHSV(colorIndex % 1, 0.8, 1)
+end
+
+-- ================== UI ==================
+local gui = Instance.new("ScreenGui")
+gui.Name = "MaxUI"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = LP:WaitForChild("PlayerGui")
+_G.MaxGui = gui
+
+-- Menu Menor (240x380)
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 240, 0, 380)
+main.Position = UDim2.new(0.5, -120, 0.5, -190)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+main.BorderSizePixel = 0
+main.ClipsDescendants = true
+main.Active = true
+main.Draggable = true
+main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(120, 90, 255)
+stroke.Thickness = 1.5
+stroke.Transparency = 0.2
+stroke.Parent = main
+
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 35)
+topBar.BackgroundTransparency = 1
+topBar.Parent = main
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -70, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Murder Mystery Script"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 12
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+-- Botões Invertidos: Min no lado esquerdo, Fechar no lado direito (X no final)
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 24, 0, 24)
+minBtn.Position = UDim2.new(1, -54, 0.5, -12) -- Lado esquerdo dos dois
+minBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 44)
+minBtn.Text = "—"
+minBtn.TextColor3 = Color3.fromRGB(200, 200, 215)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 12
+minBtn.BorderSizePixel = 0
+minBtn.Parent = topBar
+Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 24, 0, 24)
+closeBtn.Position = UDim2.new(1, -28, 0.5, -12) -- Lado direito dos dois
+closeBtn.BackgroundColor3 = Color3.fromRGB(40, 24, 28)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 120, 130)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 11
+closeBtn.BorderSizePixel = 0
+closeBtn.Parent = topBar
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+
+local body = Instance.new("Frame")
+body.Size = UDim2.new(1, 0, 1, -35)
+body.Position = UDim2.new(0, 0, 0, 35)
+body.BackgroundTransparency = 1
+body.Parent = main
+
+local function addToggle(y, txt, init, cb)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, -16, 0, 28)
+    row.Position = UDim2.new(0, 8, 0, y)
+    row.BackgroundTransparency = 1
+    row.Parent = body
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -40, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = txt
+    lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+    lbl.Font = Enum.Font.GothamMedium
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = row
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 34, 0, 18)
+    btn.Position = UDim2.new(1, -34, 0.5, -9)
+    btn.BackgroundColor3 = init and Color3.fromRGB(120, 90, 255) or Color3.fromRGB(50, 50, 60)
+    btn.Text = ""
+    btn.BorderSizePixel = 0
+    btn.Parent = row
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 12, 0, 12)
+    knob.Position = init and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.BorderSizePixel = 0
+    knob.Parent = btn
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+
+    local state = init
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.BackgroundColor3 = state and Color3.fromRGB(120, 90, 255) or Color3.fromRGB(50, 50, 60)
+        knob.Position = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
+        cb(state)
+    end)
+end
+
+addToggle(4, "Silent Aim", Config.Aim, function(v) Config.Aim = v end)
+addToggle(38, "ESP Roles", Config.EspRole, function(v) 
+    Config.EspRole = v
+    if not v then for _, o in pairs(roleHighlights) do o:Destroy() end; roleHighlights = {}; for _, o in pairs(roleBillboards) do o:Destroy() end; roleBillboards = {} end 
+end)
+addToggle(72, "ESP Weapons", Config.EspGun, function(v) 
+    Config.EspGun = v
+    if not v then for _, o in pairs(weaponEsp) do o:Destroy() end; weaponEsp = {} end 
+end)
+addToggle(106, "Infinite Jump", Config.InfJump, function(v) Config.InfJump = v end)
+addToggle(140, "Speed", Config.Speed, function(v) 
+    Config.Speed = v
+    local hrp = LP.Character and LP.Character:FindFirstChild("Humanoid")
+    if hrp then hrp.WalkSpeed = v and Config.SpeedVal or 16 end
+end)
+
+-- Slider de velocidade
+local sliderLbl = Instance.new("TextLabel")
+sliderLbl.Size = UDim2.new(1, -16, 0, 20)
+sliderLbl.Position = UDim2.new(0, 8, 0, 174)
+sliderLbl.BackgroundTransparency = 1
+sliderLbl.Text = "Speed Value: " .. Config.SpeedVal
+sliderLbl.TextColor3 = Color3.fromRGB(150, 150, 160)
+sliderLbl.Font = Enum.Font.GothamMedium
+sliderLbl.TextSize = 10
+sliderLbl.TextXAlignment = Enum.TextXAlignment.Left
+sliderLbl.Parent = body
+
+local sliderBg = Instance.new("Frame")
+sliderBg.Size = UDim2.new(1, -16, 0, 4)
+sliderBg.Position = UDim2.new(0, 8, 0, 196)
+sliderBg.BackgroundColor3 = Color3.fromRGB(40, 40, 54)
+sliderBg.BorderSizePixel = 0
+sliderBg.Parent = body
+Instance.new("UICorner", sliderBg).CornerRadius = UDim.new(1, 0)
+
+local sliderFill = Instance.new("Frame")
+sliderFill.Size = UDim2.new(Config.SpeedVal / 200, 0, 1, 0)
+sliderFill.BackgroundColor3 = Color3.fromRGB(120, 90, 255)
+sliderFill.BorderSizePixel = 0
+sliderFill.Parent = sliderBg
+Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(1, 0)
+
+local sliderKnob = Instance.new("Frame")
+sliderKnob.Size = UDim2.new(0, 10, 0, 10)
+sliderKnob.Position = UDim2.new(Config.SpeedVal / 200, -5, 0.5, -5)
+sliderKnob.BackgroundColor3 = Color3.fromRGB(245, 245, 250)
+sliderKnob.BorderSizePixel = 0
+sliderKnob.Parent = sliderBg
+Instance.new("UICorner", sliderKnob).CornerRadius = UDim.new(1, 0)
+
+local dragging = false
+local function updateSlider(input)
+    local rel = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+    Config.SpeedVal = math.floor(rel * 200)
+    sliderFill.Size = UDim2.new(rel, 0, 1, 0)
+    sliderKnob.Position = UDim2.new(rel, -5, 0.5, -5)
+    sliderLbl.Text = "Speed Value: " .. Config.SpeedVal
+    if Config.Speed and LP.Character and LP.Character:FindFirstChild("Humanoid") then
+        LP.Character.Humanoid.WalkSpeed = Config.SpeedVal
+    end
+end
+sliderBg.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; updateSlider(i)
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        updateSlider(i)
+    end
+end)
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+-- Botão TP
+local btnTP = Instance.new("TextButton")
+btnTP.Size = UDim2.new(1, -16, 0, 32)
+btnTP.Position = UDim2.new(0, 8, 0, 212)
+btnTP.BackgroundColor3 = Color3.fromRGB(60, 40, 80)
+btnTP.Text = "Quick TP to Weapon"
+btnTP.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnTP.Font = Enum.Font.GothamBold
+btnTP.TextSize = 11
+btnTP.BorderSizePixel = 0
+btnTP.Parent = body
+Instance.new("UICorner", btnTP).CornerRadius = UDim.new(0, 6)
+
+-- Créditos
+local credits = Instance.new("TextLabel")
+credits.Size = UDim2.new(1, -20, 0, 20)
+credits.Position = UDim2.new(0, 10, 1, -25)
+credits.BackgroundTransparency = 1
+credits.Text = "Create By Max"
+credits.TextColor3 = Color3.fromRGB(255, 255, 255)
+credits.Font = Enum.Font.GothamBold
+credits.TextSize = 11
+credits.TextXAlignment = Enum.TextXAlignment.Center
+credits.Parent = body
+
+-- ================== BOLINHA (Arrastável com Mouse/Touch) ==================
+local bubble = Instance.new("Frame")
+bubble.Size = UDim2.new(0, 45, 0, 45)
+bubble.Position = UDim2.new(0.5, -22, 0.5, -22)
+bubble.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+bubble.BorderSizePixel = 0
+bubble.Visible = false
+bubble.ClipsDescendants = true
+bubble.Parent = gui
+Instance.new("UICorner", bubble).CornerRadius = UDim.new(1, 0)
+
+local bStroke = Instance.new("UIStroke")
+bStroke.Thickness = 2
+bStroke.Parent = bubble
+
+local bImg = Instance.new("ImageLabel")
+bImg.Size = UDim2.new(1, 0, 1, 0)
+bImg.BackgroundTransparency = 1
+bImg.ScaleType = Enum.ScaleType.Crop
+-- ID Público de um Decal gótico/caveira (The Binding of Isaac / Hollow Knight style)
+bImg.Image = "rbxassetid://10228714605"
+bImg.Parent = bubble
+
+local bBtn = Instance.new("TextButton")
+bBtn.Size = UDim2.new(1, 0, 1, 0)
+bBtn.BackgroundTransparency = 1
+bBtn.Text = ""
+bBtn.Parent = bubble
+
+-- Drag da bolinha customizado (funciona em qualquer celular)
+local bDragging, bStart, bPos
+bubble.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        bDragging = true; bStart = i.Position; bPos = bubble.Position
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if bDragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local d = i.Position - bStart
+        bubble.Position = UDim2.new(bPos.X.Scale, bPos.X.Offset + d.X, bPos.Y.Scale, bPos.Y.Offset + d.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        bDragging = false
+    end
+end)
+
+closeBtn.MouseButton1Click:Connect(function() main.Visible = false; bubble.Visible = true end)
+minBtn.MouseButton1Click:Connect(function() main.Visible = false; bubble.Visible = true end)
+bBtn.MouseButton1Click:Connect(function() bubble.Visible = false; main.Visible = true end)
+
+-- ================== LÓGICA ==================
+local function getRole(player)
+    local char = player.Character
+    if not char then return "Innocent" end
+    local backpack = player:FindFirstChild("Backpack")
+    if char:FindFirstChild("Knife") or (backpack and backpack:FindFirstChild("Knife")) then return "Murderer" end
+    if char:FindFirstChild("Gun") or (backpack and backpack:FindFirstChild("Gun")) then return "Sheriff" end
+    return "Innocent"
+end
+
+local function alive(p)
+    return p and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0
+end
+
+local function getMurderer()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LP and alive(p) and getRole(p) == "Murderer" then return p end
+    end
+end
+
+local function getClosest()
+    local myChar = LP.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+    local myPos = myChar.HumanoidRootPart.Position
+    local best, bestDist = nil, Config.Dist
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LP and alive(p) then
+            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local d = (hrp.Position - myPos).Magnitude
+                if d < bestDist then best, bestDist = p, d end
+            end
+        end
+    end
+    return best
+end
+
+local function pickTarget()
+    local role = getRole(LP)
+    if role == "Sheriff" then return getMurderer() end
+    if role == "Murderer" then return getClosest() end
+    return nil
+end
+
+local function getAimPart(p)
+    if not p or not p.Character then return nil end
+    return p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Head")
+end
+
+-- Hook Simples
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    if Config.Aim and method == "FireServer" then
+        local n = tostring(self.Name):lower()
+        if n:find("shoot") or n:find("hit") or n:find("knife") or n:find("gun") then
+            local t = pickTarget()
+            local part = getAimPart(t)
+            if part then
+                local args = {...}
+                table.insert(args, part)
+                return oldNamecall(self, unpack(args))
+            end
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+
+-- ================== INFINITE JUMP ==================
+UIS.JumpRequest:Connect(function()
+    if Config.InfJump and LP.Character then
+        local humanoid = LP.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- ================== TP RÁPIDO (NOVO MÉTODO) ==================
+local isTPing = false
+btnTP.MouseButton1Click:Connect(function()
+    if isTPing then return end
+    isTPing = true
+    local myChar = LP.Character
+    if not myChar then isTPing = false; return end
+    
+    -- Procura a arma mais perto
+    local myPos = myChar:FindFirstChild("HumanoidRootPart") and myChar.HumanoidRootPart.Position or Vector3.zero
+    local closestTool = nil
+    local minDist = 200
+    
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local n = obj.Name:lower()
+            if (n == "knife" or n == "gun") and not n:find("display") and not n:find("spawn") and not n:find("stuck") then
+                local parent = obj:FindFirstAncestorOfClass("Model")
+                local held = false
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p.Character == parent then held = true; break end
+                end
+                if not held then
+                    local d = (obj.Position - myPos).Magnitude
+                    if d < minDist then closestTool = parent; minDist = d end
+                end
+            end
+        end
+    end
+    
+    if closestTool then
+        -- Pega sem se mover (invisível para os outros)
+        if closestTool:IsA("Tool") then
+            closestTool.Parent = myChar
+        elseif closestTool:FindFirstChildOfClass("Tool") then
+            closestTool:FindFirstChildOfClass("Tool").Parent = myChar
+        end
+    end
+    task.wait(0.2)
+    isTPing = false
+end)
+
+-- ================== ESP ==================
+task.spawn(function()
+    while gui.Parent do
+        task.wait(0.1)
+        local rgb = getRGBColor()
+        credits.TextColor3 = rgb
+        stroke.Color = rgb
+        bStroke.Color = rgb
+        
+        if Config.EspRole then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LP and alive(p) then
+                    local role = getRole(p)
+                    local color = role == "Sheriff" and Color3.fromRGB(80, 160, 255) or (role == "Murderer" and Color3.fromRGB(255, 70, 80) or Color3.fromRGB(80, 255, 80))
+                    local char = p.Character
+                    
+                    local hl = roleHighlights[p]
+                    if not hl or not hl.Parent then
+                        hl = Instance.new("Highlight")
+                        hl.Parent = char
+                        roleHighlights[p] = hl
+                        
+                        local bb = Instance.new("BillboardGui")
+                        bb.Size = UDim2.new(0, 80, 0, 20)
+                        bb.StudsOffset = Vector3.new(0, 2.8, 0)
+                        bb.AlwaysOnTop = true
+                        bb.Parent = char
+                        roleBillboards[p] = bb
+                        
+                        local roleLbl = Instance.new("TextLabel")
+                        roleLbl.Size = UDim2.new(1, 0, 1, 0)
+                        roleLbl.BackgroundTransparency = 1
+                        roleLbl.Text = role
+                        roleLbl.TextColor3 = color
+                        roleLbl.Font = Enum.Font.GothamBold
+                        roleLbl.TextSize = 11
+                        roleLbl.TextStrokeTransparency = 0.5
+                        roleLbl.Parent = bb
+                    end
+                    hl.FillColor = color
+                    hl.OutlineColor = color
+                    local bb = roleBillboards[p]
+                    if bb then
+                        local lbl = bb:FindFirstChildOfClass("TextLabel")
+                        if lbl then lbl.Text = role; lbl.TextColor3 = color end
+                    end
+                else
+                    if roleHighlights[p] then roleHighlights[p]:Destroy(); roleHighlights[p] = nil end
+                    if roleBillboards[p] then roleBillboards[p]:Destroy(); roleBillboards[p] = nil end
+                end
+            end
+        end
+        
+        if Config.EspGun then
+            local myChar = LP.Character
+            local myPos = myChar and myChar:FindFirstChild("HumanoidRootPart") and myChar.HumanoidRootPart.Position or Vector3.zero
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    local n = obj.Name:lower()
+                    if (n == "knife" or n == "gun") and not n:find("display") and not n:find("spawn") and not n:find("stuck") then
+                        local parent = obj:FindFirstAncestorOfClass("Model")
+                        local held = false
+                        for _, p in pairs(Players:GetPlayers()) do
+                            if p.Character == parent then held = true; break end
+                        end
+                        if not held and (obj.Position - myPos).Magnitude <= 150 then
+                            if not weaponEsp[obj] or not weaponEsp[obj].Parent then
+                                local hl = Instance.new("Highlight")
+                                hl.FillColor = Color3.fromRGB(255, 255, 0)
+                                hl.OutlineColor = Color3.fromRGB(255, 255, 0)
+                                hl.FillTransparency = 0.5
+                                hl.OutlineTransparency = 0.1
+                                hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                                hl.Parent = obj
+                                
+                                local bb = Instance.new("BillboardGui")
+                                bb.Size = UDim2.new(0, 60, 0, 16)
+                                bb.StudsOffset = Vector3.new(0, 1, 0)
+                                bb.AlwaysOnTop = true
+                                bb.Parent = obj
+                                
+                                local lbl = Instance.new("TextLabel")
+                                lbl.Size = UDim2.new(1, 0, 1, 0)
+                                lbl.BackgroundTransparency = 1
+                                lbl.Text = "PICK UP"
+                                lbl.TextColor3 = Color3.fromRGB(255, 255, 0)
+                                lbl.Font = Enum.Font.GothamBold
+                                lbl.TextSize = 9
+                                lbl.Parent = bb
+                                
+                                weaponEsp[obj] = bb
+                            end
+                        end
+                    end
+                e
